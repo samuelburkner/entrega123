@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gerenciamento de Entregas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #2ecc71;
+            --warning-color: #f1c40f;
+            --danger-color: #e74c3c;
+            --light-gray: #f5f6fa;
+        }
+
+        body {
+            background-color: var(--light-gray);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background-color: var(--warning-color);
+            color: black;
+        }
+
+        .status-in-progress {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .status-delivered {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .status-cancelled {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .delivery-card {
+            transition: transform 0.2s;
+        }
+
+        .delivery-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .map-container {
+            height: 300px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .stats-card {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+
+        .vehicle-select {
+            background-color: var(--light-gray);
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <header class="header text-center">
+            <h1><i class="bi bi-truck"></i> Sistema de Gerenciamento de Entregas</h1>
+        </header>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Entregas Hoje</h5>
+                        <h2 id="todayDeliveries">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Em Andamento</h5>
+                        <h2 id="inProgressDeliveries">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Entregas Concluídas</h5>
+                        <h2 id="completedDeliveries">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Veículos Ativos</h5>
+                        <h2 id="activeVehicles">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-15">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Nova Entrega</h5>
+                        <button class="btn btn-primary" onclick="toggleDeliveryForm()">
+                            <i class="bi bi-plus-lg"></i> Adicionar
+                        </button>
+                    </div>
+                    <div class="card-body" id="deliveryForm" style="display: none;">
+                        <form id="newDeliveryForm" onsubmit="handleSubmit(event)">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="clientName" class="form-label">Cliente</label>
+                                    <input type="text" class="form-control" id="clientName" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="deliveryAddress" class="form-label">Endereço de Entrega</label>
+                                    <input type="text" class="form-control" id="deliveryAddress" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="deliveryTime" class="form-label">Tempo Estimado (min)</label>
+                                    <input type="number" class="form-control" id="deliveryTime" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="quantity" class="form-label">Quantidade</label>
+                                    <input type="number" class="form-control" id="quantity" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="vehicle" class="form-label">Veículo</label>
+                                    <select class="form-select" id="vehicle" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="moto">Moto</option>
+                                        <option value="carro">Carro</option>
+                                        <option value="caminhao">Caminhão</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Salvar Entrega</button>
+                        </form>
+                    </div>
+                </div>
+        
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Entregas em Andamento</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="deliveriesList" class="row">
+                            <!-- Deliveries will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+        
+                <!-- Card dos entregadores movido para cá -->
+                <div class="card mt-10">
+                    <div class="card-header">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Entregadores, Veículos e Placas</h5>
+                            </div>
+                            <div class="card-body">
+                        
+                                <!-- Entregador de carro -->
+                                <div class="mb-4 d-flex align-items-center flex-wrap">
+                                    <div>
+                                        <h5 class="mb-1">Entregador de carro:</h5>
+                                        <img src="Imagem do WhatsApp de 2025-05-13 à(s) 13.55.23_182ec907.jpg" alt="Entregador" class="img-fluid" style="max-width: 420px; border-radius: 8px;">
+                                    </div>
+                                    <img src="aa.jpeg" alt="Carro" class="img-fluid ms-3" style="max-width: 620px; border-radius: 8px;">
+                                    <img src="carro.jpg" alt="Placa do carro" class="img-fluid ms-3" style="max-width: 80px; border-radius: 8px;">
+                                </div>
+                        
+                                <!-- Entregador de moto -->
+                                <div class="mb-4 d-flex align-items-center flex-wrap">
+                                    <div>
+                                        <h5 class="mb-1">Entregador de moto:</h5>
+                                        <img src="Captura de tela 2025-05-13 135900.png" alt="Entregador" class="img-fluid" style="max-width: 420px; border-radius: 8px;">
+                                    </div>
+                                    <img src="bbb.jpeg" alt="Moto" class="img-fluid ms-3" style="max-width: 620px; border-radius: 8px;">
+                                    <img src="moto.jpg" alt="Placa da moto" class="img-fluid ms-3" style="max-width: 80px; border-radius: 8px;">
+                                </div>
+                        
+                                <!-- Entregador de caminhão -->
+                                <div class="mb-4 d-flex align-items-center flex-wrap">
+                                    <div>
+                                        <h5 class="mb-1">Entregador de caminhão:</h5>
+                                        <img src="real.png" alt="Entregador" class="img-fluid" style="max-width: 420px; border-radius: 8px;">
+                                    </div>
+                                    <img src="foto-01-volkwagen-delivery-foto-erico-pimenta-arcevo-pessoal-2048x1536.webp" alt="Caminhão" class="img-fluid ms-3" style="max-width: 420px; border-radius: 8px;">
+                                    <img src="caminao.jpg" alt="Placa do caminhão" class="img-fluid ms-3" style="max-width: 80px; border-radius: 8px;">
+                                </div>
+                        
+                            </div>
+                        </div>
+                        
+
+    <script>
+        // Função para salvar entregas no localStorage
+        function saveDeliveriesToStorage() {
+            localStorage.setItem('deliveries', JSON.stringify(deliveries));
+        }
+
+        // Função para carregar entregas do localStorage
+        function loadDeliveriesFromStorage() {
+            const storedDeliveries = localStorage.getItem('deliveries');
+            return storedDeliveries ? JSON.parse(storedDeliveries) : [];
+        }
+
+        // Array para armazenar as entregas
+        let deliveries = loadDeliveriesFromStorage();
+
+        // Função para mostrar/esconder o formulário
+        function toggleDeliveryForm() {
+            const form = document.getElementById('deliveryForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Função para adicionar nova entrega
+        function handleSubmit(event) {
+            event.preventDefault();
+
+            const newDelivery = {
+                id: Date.now(),
+                clientName: document.getElementById('clientName').value,
+                deliveryAddress: document.getElementById('deliveryAddress').value,
+                deliveryTime: document.getElementById('deliveryTime').value,
+                quantity: document.getElementById('quantity').value,
+                vehicle: document.getElementById('vehicle').value,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+
+            deliveries.push(newDelivery);
+            saveDeliveriesToStorage();
+            updateDeliveriesList();
+            updateStats();
+            event.target.reset();
+            toggleDeliveryForm();
+        }
+
+        // Função para atualizar a lista de entregas
+        function updateDeliveriesList() {
+            const deliveriesList = document.getElementById('deliveriesList');
+            deliveriesList.innerHTML = '';
+
+            deliveries.forEach(delivery => {
+                const deliveryCard = document.createElement('div');
+                deliveryCard.className = 'col-md-6 mb-3';
+            // ...dentro da função updateDeliveriesList()...
+            deliveryCard.innerHTML = `
+    <div class="card delivery-card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="card-title mb-0">${delivery.clientName}</h6>
+                <span class="status-badge status-${delivery.status}">
+                    ${getStatusText(delivery.status)}
+                </span>
+            </div>
+            <p class="card-text">
+                <small class="text-muted">
+                    <i class="bi bi-geo-alt"></i> ${delivery.deliveryAddress}
+                </small>
+            </p>
+            <p class="card-text">
+                <small class="text-muted">
+                    <i class="bi bi-truck"></i> ${delivery.vehicle.charAt(0).toUpperCase() + delivery.vehicle.slice(1)}
+                </small>
+            </p>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-secondary me-2">
+                        <i class="bi bi-clock"></i> ${delivery.deliveryTime} min
+                    </span>
+                    <span class="badge bg-secondary">
+                        <i class="bi bi-box"></i> ${delivery.quantity}
+                    </span>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="updateDeliveryStatus(${delivery.id}, 'in-progress')">
+                        <i class="bi bi-play-fill"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-success me-1" onclick="updateDeliveryStatus(${delivery.id}, 'delivered')">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning me-1" onclick="editDelivery(${delivery.id})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteDelivery(${delivery.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+`;
+
+                deliveriesList.appendChild(deliveryCard);
+            });
+        }
+
+        // Função para atualizar estatísticas
+        function updateStats() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayDeliveries = deliveries.filter(d => d.createdAt.startsWith(today)).length;
+            const inProgressDeliveries = deliveries.filter(d => d.status === 'in-progress').length;
+            const completedDeliveries = deliveries.filter(d => d.status === 'delivered').length;
+            const activeVehicles = new Set(deliveries.filter(d => d.status === 'in-progress').map(d => d.vehicle)).size;
+
+            document.getElementById('todayDeliveries').textContent = todayDeliveries;
+            document.getElementById('inProgressDeliveries').textContent = inProgressDeliveries;
+            document.getElementById('completedDeliveries').textContent = completedDeliveries;
+            document.getElementById('activeVehicles').textContent = activeVehicles;
+        }
+
+        // Função para obter texto do status
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': 'Pendente',
+                'in-progress': 'Em Andamento',
+                'delivered': 'Entregue',
+                'cancelled': 'Cancelado'
+            };
+            return statusMap[status] || status;
+        }
+
+        // Função para atualizar status da entrega
+        function updateDeliveryStatus(id, newStatus) {
+            const delivery = deliveries.find(d => d.id === id);
+            if (delivery) {
+                delivery.status = newStatus;
+                saveDeliveriesToStorage();
+                updateDeliveriesList();
+                updateStats();
+            }
+        }
+
+        // Função para excluir entrega
+        function deleteDelivery(id) {
+            if (confirm('Tem certeza que deseja excluir esta entrega?')) {
+                deliveries = deliveries.filter(d => d.id !== id);
+                saveDeliveriesToStorage();
+                updateDeliveriesList();
+                updateStats();
+            }
+        }
+        function editDelivery(id) {
+    const delivery = deliveries.find(d => d.id === id);
+    if (delivery) {
+        document.getElementById('clientName').value = delivery.clientName;
+        document.getElementById('deliveryAddress').value = delivery.deliveryAddress;
+        document.getElementById('deliveryTime').value = delivery.deliveryTime;
+        document.getElementById('quantity').value = delivery.quantity;
+        document.getElementById('vehicle').value = delivery.vehicle;
+        toggleDeliveryForm();
+
+        // Remove a entrega antiga para que, ao salvar, seja criada uma nova com os dados editados
+        deliveries = deliveries.filter(d => d.id !== id);
+        saveDeliveriesToStorage();
+        updateDeliveriesList();
+        updateStats();
+    }
+}
+        // Inicializar a interface
+        updateDeliveriesList();
+        updateStats();
+    </script>
+</body>
+</html>
